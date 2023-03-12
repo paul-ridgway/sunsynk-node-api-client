@@ -8,7 +8,8 @@ async function demo() {
   console.log("API Client demo");
 
   const client = new Client(username, password);
-  console.log("User:", JSON.stringify(await client.getUser(), null, 2));
+  console.log("Logged in as:", (await client.getUser()).data.nickname);
+  
   const plants = await client.getPlants();
   console.log("Plants:", plants.data.infos.length);
   const flow = await client.getFlow(plants.data.infos[0].id, new Date());
