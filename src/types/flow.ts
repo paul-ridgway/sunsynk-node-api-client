@@ -23,7 +23,10 @@
       microOn: boolean;
       existsMeter: boolean;
       bmsCommFaultFlag: boolean;
-      pv?: any;
+      pv?: {
+        power: number,
+        toInv: boolean
+      }[];
       existThinkPower: boolean;
   }
 

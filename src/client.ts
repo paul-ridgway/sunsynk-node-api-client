@@ -52,6 +52,10 @@ export class Client {
     return (await this._client.get<FlowApiResponse>(`/api/v1/plant/energy/${plantId}/flow?date=${date.toISOString().split('T')[0]}`)).data;
   }
 
+  async getDetailedFlow(plantId: number) {
+    return (await this._client.get<FlowApiResponse>(`/api/v1/inverter/${plantId}/flow`)).data;
+  }
+
   async getPermissions() {
     return (await this._client.get<PermissionsApiResponse>(`/api/v1/permission?lan=${this._lan}`)).data;
   }
