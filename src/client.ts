@@ -41,67 +41,67 @@ export class Client {
   }
 
   async getUser() {
-    return (await this._client.get<UserApiResponse>(`/api/v1/user?lan=${this._lan}`)).data;
+    return (await this._client.get<UserApiResponse>(`/api/v1/user?lan=${this._lan}`)).data.data;
   }
 
   async getPlants(page: number = 1, limit: number = 10) {
-    return (await this._client.get<PlantsApiResponse>(`/api/v1/plants?page=${page}&limit=${limit}`)).data;
+    return (await this._client.get<PlantsApiResponse>(`/api/v1/plants?page=${page}&limit=${limit}`)).data.data;
   }
 
   async getFlow(plantId: number, date: Date) {
-    return (await this._client.get<FlowApiResponse>(`/api/v1/plant/energy/${plantId}/flow?date=${date.toISOString().split('T')[0]}`)).data;
+    return (await this._client.get<FlowApiResponse>(`/api/v1/plant/energy/${plantId}/flow?date=${date.toISOString().split('T')[0]}`)).data.data;
   }
 
   async getDetailedFlow(plantId: number) {
-    return (await this._client.get<FlowApiResponse>(`/api/v1/inverter/${plantId}/flow`)).data;
+    return (await this._client.get<FlowApiResponse>(`/api/v1/inverter/${plantId}/flow`)).data.data;
   }
 
   async getPermissions() {
-    return (await this._client.get<PermissionsApiResponse>(`/api/v1/permission?lan=${this._lan}`)).data;
+    return (await this._client.get<PermissionsApiResponse>(`/api/v1/permission?lan=${this._lan}`)).data.data;
   }
 
   async getEventCount(plantId: number) {
-    return (await this._client.get<EventCountApiResponse>(`/api/v1/plant/${plantId}/eventCount`)).data;
+    return (await this._client.get<EventCountApiResponse>(`/api/v1/plant/${plantId}/eventCount`)).data.data;
   }
 
   async getInverterCount(plantId: number) {
-    return (await this._client.get<InverterCountApiResponse>(`/api/v1/plant/${plantId}/inverterCount`)).data;
+    return (await this._client.get<InverterCountApiResponse>(`/api/v1/plant/${plantId}/inverterCount`)).data.data;
   }
 
   async getWeatherStationProduct(plantId: number) {
-    return (await this._client.get<WeatherStationProductApiResponse>(`/api/v1/getWeatherStationProduct?stationId=${plantId}`)).data;
+    return (await this._client.get<WeatherStationProductApiResponse>(`/api/v1/getWeatherStationProduct?stationId=${plantId}`)).data.data;
   }
 
   async getMessagesCount() {
-    return (await this._client.get<MessagesCountApiResponse>(`/api/v1/message/count`)).data;
+    return (await this._client.get<MessagesCountApiResponse>(`/api/v1/message/count`)).data.data;
   }
 
   async getCheckDevice(plantId: number) {
-    return (await this._client.get<CheckDeviceApiResponse>(`/api/v1/plant/${plantId}/check/device?stationId=${plantId}`)).data;
+    return (await this._client.get<CheckDeviceApiResponse>(`/api/v1/plant/${plantId}/check/device?stationId=${plantId}`)).data.data;
   }
 
   async getRealtimeData(plantId: number) {
-    return (await this._client.get<RealtimeDataApiResponse>(`/api/v1/plant/${plantId}/realtime?id=${plantId}`)).data;
+    return (await this._client.get<RealtimeDataApiResponse>(`/api/v1/plant/${plantId}/realtime?id=${plantId}`)).data.data;
   }
 
   async getPlant(plantId: number) {
-    return (await this._client.get<PlantApiResponse>(`/api/v1/plant/${plantId}?lan=${this._lan}&id=${plantId}`)).data;
+    return (await this._client.get<PlantApiResponse>(`/api/v1/plant/${plantId}?lan=${this._lan}&id=${plantId}`)).data.data;
   }
 
   async getGenerationUse(plantId: number) {
-    return (await this._client.get<GenerationUseApiResponse>(`/api/v1/plant/energy/${plantId}/generation/use`)).data;
+    return (await this._client.get<GenerationUseApiResponse>(`/api/v1/plant/energy/${plantId}/generation/use`)).data.data;
   }
 
   async getWeather(date: Date, lat: number, lon: number) {
-    return (await this._client.get<WeatherApiResponse>(`/api/v1/weather?lan=${this._lan}&date=${date.toISOString().split('T')[0]}&lonLat=${lat},${lon}`)).data;
+    return (await this._client.get<WeatherApiResponse>(`/api/v1/weather?lan=${this._lan}&date=${date.toISOString().split('T')[0]}&lonLat=${lat},${lon}`)).data.data;
   }
 
   async getNotices(date: Date, scope: number) {
-    return (await this._client.get<NoticesApiResponse>(`/api/v1/ss/notices/view?date=${date.toISOString().split('T')[0]}&scope=${scope}`)).data;
+    return (await this._client.get<NoticesApiResponse>(`/api/v1/ss/notices/view?date=${date.toISOString().split('T')[0]}&scope=${scope}`)).data.data;
   }
 
   async getEnergyByDay(plantId: number, date: Date) {
-    return (await this._client.get<DayEnergyApiResponse>(`/api/v1/plant/energy/${plantId}/day?lan=${this._lan}&date=${date.toISOString().split('T')[0]}&id=${plantId}`)).data;
+    return (await this._client.get<DayEnergyApiResponse>(`/api/v1/plant/energy/${plantId}/day?lan=${this._lan}&date=${date.toISOString().split('T')[0]}&id=${plantId}`)).data.data;
   }
 
 
