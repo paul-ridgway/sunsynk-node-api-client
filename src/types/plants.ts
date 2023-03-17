@@ -9,7 +9,7 @@ export interface PlantInfo {
   efficiency: number;
   etoday: number;
   etotal: number;
-  updateAt: Date;
+  updateAt: string;
   createAt: Date;
   type: number;
   masterId: number;
@@ -39,7 +39,7 @@ export interface RealtimeDataPayload {
   etotal: number;
   income: number;
   efficiency: number;
-  updateAt: Date;
+  updateAt: string;
   currency: Currency;
   totalPower: number;
 }

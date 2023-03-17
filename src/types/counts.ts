@@ -1,13 +1,13 @@
 export interface EventCountPayload {
   warning: number,
   fault: number,
-  updateAt: Date;
+  updateAt: string;
 }
 
 export interface InverterCountPayload {
   warning: number,
   fault: number,
-  updateAt: Date,
+  updateAt: string,
   total: number,
   normal: number,
   offline: number;
