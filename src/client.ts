@@ -10,7 +10,7 @@ export class Client {
   private _accessToken: string | undefined;
   private _refreshToken: string | undefined;
 
-  constructor(private readonly _username: string, private readonly _password: string) {
+  constructor(private readonly _username: string, private readonly _password: string, private readonly _clientId: string = "api") {
     this._client = axios.create({
       baseURL: this._baseUrl,
     });
@@ -117,7 +117,7 @@ export class Client {
       "username": this._username,
       "password": this._password,
       "grant_type": "password",
-      "client_id": "api"
+      "client_id": this._clientId,
     }, { baseURL: this._baseUrl });
 
     if (!resp.data.success) {
