@@ -1,8 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestHeaders } from "axios";
 import { AuthenticationError } from "./errors";
 import { CheckDeviceApiResponse, DayEnergyApiResponse, EventCountApiResponse, FlowApiResponse, GenerationUseApiResponse, InverterCountApiResponse, MessagesCountApiResponse, NoticesApiResponse, PermissionsApiResponse, PlantApiResponse, PlantsApiResponse, RealtimeDataApiResponse, TokenApiResponse, UserApiResponse, WeatherApiResponse, WeatherStationProductApiResponse } from "./types";
-import { RefreshTokenProvider } from "./refreshTokenProvider";
-import { DefaultRefreshTokenProvider } from "./RefreshTokenProvider";
+import { DefaultRefreshTokenProvider, RefreshTokenProvider } from "./RefreshTokenProvider";
 
 export class Client {
 
