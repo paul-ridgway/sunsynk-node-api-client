@@ -1,6 +1,8 @@
 import axios, { AxiosInstance, AxiosRequestHeaders } from "axios";
 import { AuthenticationError } from "./errors";
 import { CheckDeviceApiResponse, DayEnergyApiResponse, EventCountApiResponse, FlowApiResponse, GenerationUseApiResponse, InverterCountApiResponse, MessagesCountApiResponse, NoticesApiResponse, PermissionsApiResponse, PlantApiResponse, PlantsApiResponse, RealtimeDataApiResponse, TokenApiResponse, UserApiResponse, WeatherApiResponse, WeatherStationProductApiResponse } from "./types";
+import { RefreshTokenProvider } from "./refreshTokenProvider";
+import { DefaultRefreshTokenProvider } from "./RefreshTokenProvider";
 
 export class Client {
 
@@ -8,9 +10,15 @@ export class Client {
   private readonly _lan: string = 'en';
   private readonly _client: AxiosInstance;
   private _accessToken: string | undefined;
-  private _refreshToken: string | undefined;
+  private _username: string | undefined;
+  private _password: string | undefined;
+  private _refreshTokenProvider: RefreshTokenProvider;
 
-  constructor(private readonly _username: string, private readonly _password: string, private readonly _clientId: string = "api") {
+  constructor(username?: string, password?: string, refreshTokenProvider = new DefaultRefreshTokenProvider(), private readonly _clientId: string = "api") {
+    this._username = username;
+    this._password = password;
+    this._refreshTokenProvider = refreshTokenProvider;
+
     this._client = axios.create({
       baseURL: this._baseUrl,
     });
@@ -38,6 +46,15 @@ export class Client {
       }
       return Promise.reject(error);
     });
+  }
+
+  setRefreshTokenProvider(refreshTokenProvider: RefreshTokenProvider) {
+    this._refreshTokenProvider = refreshTokenProvider;
+  }
+
+  setCredentials(username: string, password: string) {
+    this._username = username;
+    this._password = password;
   }
 
   async getUser() {
@@ -106,13 +123,17 @@ export class Client {
 
 
   private async updateTokens(): Promise<void> {
-    if (this._refreshToken) {
+    if (this._refreshTokenProvider.getRefreshToken()) {
       return await this.getTokenWithRefreshToken();
     }
     return await this.getTokenWithCredentials();
   }
 
   private async getTokenWithCredentials(): Promise<void> {
+    if (!this._username || !this._password) {
+      throw new AuthenticationError("No credentials set");
+    }
+
     const resp = await axios.post<TokenApiResponse>('oauth/token', {
       "username": this._username,
       "password": this._password,
@@ -125,14 +146,14 @@ export class Client {
     }
 
     this._accessToken = resp.data.data.access_token;
-    this._refreshToken = resp.data.data.refresh_token;
+    this._refreshTokenProvider.setRefreshToken(resp.data.data.refresh_token);
 
   }
 
   private async getTokenWithRefreshToken(): Promise<void> {
     const resp = await this._client.post<TokenApiResponse>('oauth/token', {
       grant_type: "refresh_token",
-      refresh_token: this._refreshToken
+      refresh_token: this._refreshTokenProvider.getRefreshToken(),
     });
 
     if (!resp.data.success) {
@@ -140,6 +161,6 @@ export class Client {
     }
 
     this._accessToken = resp.data.data.access_token;
-    this._refreshToken = resp.data.data.refresh_token;
+    this._refreshTokenProvider.setRefreshToken(resp.data.data.refresh_token);
   }
 }
