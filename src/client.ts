@@ -13,7 +13,7 @@ export class Client {
   private _password: string | undefined;
   private _refreshTokenProvider: RefreshTokenProvider;
 
-  constructor(username?: string, password?: string, refreshTokenProvider = new DefaultRefreshTokenProvider(), private readonly _clientId: string = "api") {
+  constructor(username?: string, password?: string, refreshTokenProvider: RefreshTokenProvider = new DefaultRefreshTokenProvider(), private readonly _clientId: string = "api") {
     this._username = username;
     this._password = password;
     this._refreshTokenProvider = refreshTokenProvider;
