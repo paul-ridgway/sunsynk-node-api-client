@@ -1,6 +1,7 @@
 import { EventCountPayload, InverterCountPayload } from "./counts";
 import { DayEnergyPayload } from "./energy";
 import { FlowPayload } from "./flow";
+import { InvertersPayload } from "./inverters";
 import { PermissionsPayload } from "./permissions";
 import { CheckDevicePayload, GenerationUsePayload, PlantPayload, PlantsPayload, RealtimeDataPayload } from "./plants";
 import { TokenResponsePayload } from "./tokens";
@@ -21,6 +22,7 @@ export type FlowApiResponse = ApiResponse<FlowPayload>;
 export type PermissionsApiResponse = ApiResponse<PermissionsPayload>;
 export type EventCountApiResponse = ApiResponse<EventCountPayload>;
 export type InverterCountApiResponse = ApiResponse<InverterCountPayload>;
+export type InvertersApiResponse = ApiResponse<InvertersPayload>;
 export type WeatherStationProductApiResponse = ApiResponse<WeatherStationProductPayload[]>;
 export type MessagesCountApiResponse = ApiResponse<number>;
 export type NoticesApiResponse = ApiResponse<any>; // No example of the response payload

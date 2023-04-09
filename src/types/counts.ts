@@ -12,3 +12,4 @@ export interface InverterCountPayload {
   normal: number,
   offline: number;
 }
+

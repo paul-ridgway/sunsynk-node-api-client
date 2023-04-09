@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestHeaders } from "axios";
 import { AuthenticationError } from "./errors";
-import { CheckDeviceApiResponse, DayEnergyApiResponse, EventCountApiResponse, FlowApiResponse, GenerationUseApiResponse, InverterCountApiResponse, MessagesCountApiResponse, NoticesApiResponse, PermissionsApiResponse, PlantApiResponse, PlantsApiResponse, RealtimeDataApiResponse, TokenApiResponse, UserApiResponse, WeatherApiResponse, WeatherStationProductApiResponse } from "./types";
+import { CheckDeviceApiResponse, DayEnergyApiResponse, EventCountApiResponse, FlowApiResponse, GenerationUseApiResponse, InverterCountApiResponse, InvertersApiResponse, MessagesCountApiResponse, NoticesApiResponse, PermissionsApiResponse, PlantApiResponse, PlantsApiResponse, RealtimeDataApiResponse, TokenApiResponse, UserApiResponse, WeatherApiResponse, WeatherStationProductApiResponse } from "./types";
 
 export class Client {
 
@@ -52,8 +52,8 @@ export class Client {
     return (await this._client.get<FlowApiResponse>(`/api/v1/plant/energy/${plantId}/flow?date=${date.toISOString().split('T')[0]}`)).data.data;
   }
 
-  async getDetailedFlow(plantId: number) {
-    return (await this._client.get<FlowApiResponse>(`/api/v1/inverter/${plantId}/flow`)).data.data;
+  async getDetailedFlow(inverterId: number) {
+    return (await this._client.get<FlowApiResponse>(`/api/v1/inverter/${inverterId}/flow`)).data.data;
   }
 
   async getPermissions() {
@@ -66,6 +66,10 @@ export class Client {
 
   async getInverterCount(plantId: number) {
     return (await this._client.get<InverterCountApiResponse>(`/api/v1/plant/${plantId}/inverterCount`)).data.data;
+  }
+
+  async getInverters(plantId: number, page: number = 1, limit: number = 1, status: number = -1, sn: string = '', type: number = -2) {
+    return (await this._client.get<InvertersApiResponse>(`/api/v1/plant/${plantId}/inverters?page=${page}&limit=${limit}&status=${status}&sn=${sn}&id=${plantId}type=${type}`)).data.data;
   }
 
   async getWeatherStationProduct(plantId: number) {
