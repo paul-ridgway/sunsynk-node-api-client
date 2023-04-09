@@ -85,7 +85,7 @@ export class Client {
   }
 
   async getInverters(plantId: number, page: number = 1, limit: number = 10, status: number = -1, sn: string = '', type: number = -2) {
-    return (await this._client.get<InvertersApiResponse>(`/api/v1/plant/${plantId}/inverters?page=${page}&limit=${limit}&status=${status}&sn=${sn}&id=${plantId}type=${type}`)).data.data;
+    return (await this._client.get<InvertersApiResponse>(`/api/v1/plant/${plantId}/inverters?page=${page}&limit=${limit}&status=${status}&sn=${sn}&id=${plantId}&type=${type}`)).data.data;
   }
 
   async getWeatherStationProduct(plantId: number) {
