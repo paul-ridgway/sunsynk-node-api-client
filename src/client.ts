@@ -5,7 +5,6 @@ import { DefaultRefreshTokenProvider, RefreshTokenProvider } from "./RefreshToke
 
 export class Client {
 
-  private readonly _baseUrl: string = 'https://pv.inteless.com/';
   private readonly _lan: string = 'en';
   private readonly _client: AxiosInstance;
   private _accessToken: string | undefined;
@@ -13,7 +12,9 @@ export class Client {
   private _password: string | undefined;
   private _refreshTokenProvider: RefreshTokenProvider;
 
-  constructor(username?: string, password?: string, refreshTokenProvider: RefreshTokenProvider = new DefaultRefreshTokenProvider(), private readonly _clientId: string = "api") {
+  constructor(username?: string, password?: string, refreshTokenProvider: RefreshTokenProvider = new DefaultRefreshTokenProvider(),
+    private readonly _baseUrl: string = 'https://api.sunsynk.net/', private readonly _clientId: string = "api") {
+
     this._username = username;
     this._password = password;
     this._refreshTokenProvider = refreshTokenProvider;
