@@ -1,4 +1,4 @@
-# Sunsynk/PowerView AP Clinet
+# Sunsynk/PowerView AP Client
 
 An API Client for Sunsynk/PowerView using https://pv.inteless.com
 
