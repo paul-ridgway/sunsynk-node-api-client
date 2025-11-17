@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestHeaders } from "axios";
+import crypto from "crypto";
 import { AuthenticationError } from "./errors";
 import { CheckDeviceApiResponse, DayEnergyApiResponse, EventCountApiResponse, FlowApiResponse, GenerationUseApiResponse, InverterCountApiResponse, InvertersApiResponse, MessagesCountApiResponse, NoticesApiResponse, PermissionsApiResponse, PlantApiResponse, PlantsApiResponse, RealtimeDataApiResponse, TokenApiResponse, UserApiResponse, WeatherApiResponse, WeatherStationProductApiResponse } from "./types";
 import { DefaultRefreshTokenProvider, RefreshTokenProvider } from "./RefreshTokenProvider";
@@ -26,7 +27,9 @@ export class Client {
     this._client.interceptors.request.use(async (config) => {
       config.headers = (config.headers || {}) as AxiosRequestHeaders;
 
-      if (!config.url?.includes('oauth/token')) {
+      if (!config.url?.includes('oauth/token') && 
+          !config.url?.includes('oauth/token/new') && 
+          !config.url?.includes('anonymous/publicKey')) {
         if (!this._accessToken) {
           await this.updateTokens();
         }
@@ -126,6 +129,30 @@ export class Client {
   }
 
 
+  private async getPublicKey(): Promise<string> {
+    const baseUrl = this._baseUrl.endsWith('/') ? this._baseUrl.slice(0, -1) : this._baseUrl;
+    const response = await axios.get<{ data: string }>(`${baseUrl}/anonymous/publicKey`, {
+      params: {
+        source: 'sunsynk',
+        nonce: Date.now(),
+      },
+    });
+    return response.data.data;
+  }
+
+  private encryptPassword(publicKey: string, password: string): string {
+    const publicKeyPem = `-----BEGIN PUBLIC KEY-----\n${publicKey}\n-----END PUBLIC KEY-----`;
+    const buffer = Buffer.from(password, 'utf8');
+    const encrypted = crypto.publicEncrypt(
+      {
+        key: publicKeyPem,
+        padding: crypto.constants.RSA_PKCS1_PADDING,
+      },
+      buffer
+    );
+    return encrypted.toString('base64');
+  }
+
   private async updateTokens(): Promise<void> {
     if (this._refreshTokenProvider.getRefreshToken()) {
       return await this.getTokenWithRefreshToken();
@@ -138,14 +165,20 @@ export class Client {
       throw new AuthenticationError("No credentials set");
     }
 
-    const resp = await axios.post<TokenApiResponse>('oauth/token', {
-      "username": this._username,
-      "password": this._password,
-      "grant_type": "password",
-      "client_id": this._clientId,
+    // Fetch public key for password encryption
+    const publicKey = await this.getPublicKey();
+    const encryptedPassword = this.encryptPassword(publicKey, this._password);
+
+    const resp = await axios.post<TokenApiResponse>('oauth/token/new', {
+      areaCode: "sunsynk",
+      client_id: "csp-web",
+      grant_type: "password",
+      password: encryptedPassword,
+      source: "sunsynk",
+      username: this._username,
     }, { baseURL: this._baseUrl });
 
-    if (!resp.data.success) {
+    if (resp.data.msg !== "Success") {
       throw new AuthenticationError(resp.data.msg, resp.data.code);
     }
 
