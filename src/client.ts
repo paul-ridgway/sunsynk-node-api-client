@@ -130,7 +130,8 @@ export class Client {
 
 
   private async getPublicKey(): Promise<string> {
-    const response = await axios.get<{ data: string }>(`${this._baseUrl}anonymous/publicKey`, {
+    const baseUrl = this._baseUrl.endsWith('/') ? this._baseUrl.slice(0, -1) : this._baseUrl;
+    const response = await axios.get<{ data: string }>(`${baseUrl}/anonymous/publicKey`, {
       params: {
         source: 'sunsynk',
         nonce: Date.now(),
