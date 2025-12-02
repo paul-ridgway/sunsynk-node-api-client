@@ -207,7 +207,15 @@ export class Client {
         source: "sunsynk",
       };
       
-      const resp = await this._client.post<TokenApiResponse>('oauth/token/new', requestBody);
+      const baseUrl = this._baseUrl.endsWith('/') ? this._baseUrl.slice(0, -1) : this._baseUrl;
+      const resp = await axios.post<TokenApiResponse>(`${baseUrl}/oauth/token/new`, requestBody, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Content-Type': 'application/json',
+        },
+      });
 
       if (!resp.data.success || resp.data.msg !== "Success") {
         throw new AuthenticationError(resp.data.msg || "Authentication failed", resp.data.code);
@@ -229,13 +237,17 @@ export class Client {
   }
 
   private async getTokenWithRefreshToken(): Promise<void> {
-    const resp = await this._client.post<TokenApiResponse>('oauth/token', {
+    const baseUrl = this._baseUrl.endsWith('/') ? this._baseUrl.slice(0, -1) : this._baseUrl;
+    const resp = await axios.post<TokenApiResponse>(`${baseUrl}/oauth/token`, {
       grant_type: "refresh_token",
       refresh_token: this._refreshTokenProvider.getRefreshToken(),
     }, {
       headers: {
-        'Content-Type': 'application/json'
-      }
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Content-Type': 'application/json',
+      },
     });
 
     if (!resp.data.success) {
