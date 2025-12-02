@@ -13,7 +13,7 @@ export class Client {
   private _password: string | undefined;
   private _refreshTokenProvider: RefreshTokenProvider;
 
-  constructor(username?: string, password?: string, refreshTokenProvider: RefreshTokenProvider = new DefaultRefreshTokenProvider(),
+    constructor(username?: string, password?: string, refreshTokenProvider: RefreshTokenProvider = new DefaultRefreshTokenProvider(),
     private readonly _baseUrl: string = 'https://api.sunsynk.net/', private readonly _clientId: string = "api") {
 
     this._username = username;
@@ -22,6 +22,12 @@ export class Client {
 
     this._client = axios.create({
       baseURL: this._baseUrl,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Content-Type': 'application/json',
+      },
     });
 
     this._client.interceptors.request.use(async (config) => {
@@ -41,7 +47,7 @@ export class Client {
     // TODO: Handle success = false here?
     this._client.interceptors.response.use(async (response) => response, async (error) => {
       if (error) {
-        console.error("API Error", error.message, error.response?.status, error.response?.data);
+        console.error("API Error", error.message, error.response?.status, JSON.stringify(error.response?.data, null, 2));
         if (error.response?.status === 401) {
           await this.updateTokens();
           return await this._client(error.config);
@@ -131,12 +137,22 @@ export class Client {
 
   private async getPublicKey(): Promise<string> {
     const baseUrl = this._baseUrl.endsWith('/') ? this._baseUrl.slice(0, -1) : this._baseUrl;
+    const nonce = Date.now();
+    const source = 'sunsynk';
+    
+    // Sign algorithm from SPA JS: MD5(`nonce=${nonce}&source=${source}POWER_VIEW`)
+    // The constant "POWER_VIEW" is appended to the query string
+    const signString = `nonce=${nonce}&source=${source}POWER_VIEW`;
+    const sign = crypto.createHash('md5').update(signString).digest('hex');
+    
     const response = await axios.get<{ data: string }>(`${baseUrl}/anonymous/publicKey`, {
       params: {
-        source: 'sunsynk',
-        nonce: Date.now(),
+        source: source,
+        nonce: nonce,
+        sign: sign,
       },
     });
+    
     return response.data.data;
   }
 
@@ -169,28 +185,57 @@ export class Client {
     const publicKey = await this.getPublicKey();
     const encryptedPassword = this.encryptPassword(publicKey, this._password);
 
-    const resp = await axios.post<TokenApiResponse>('oauth/token/new', {
-      areaCode: "sunsynk",
-      client_id: "csp-web",
-      grant_type: "password",
-      password: encryptedPassword,
-      source: "sunsynk",
-      username: this._username,
-    }, { baseURL: this._baseUrl });
+    try {
+      // Generate nonce for token request
+      const nonce = Date.now();
+      const source = 'sunsynk';
+      
+      // Sign algorithm from SPA JS reverse-engineering:
+      // sign = MD5(`nonce=${nonce}&source=${source}${first10charsOfPublicKey}`)
+      const first10Chars = publicKey.substring(0, 10);
+      const signString = `nonce=${nonce}&source=${source}${first10Chars}`;
+      const sign = crypto.createHash('md5').update(signString).digest('hex');
+      
+      // Exact field order matching SPA captured request
+      const requestBody = {
+        sign: sign,
+        nonce: nonce,
+        username: this._username,
+        password: encryptedPassword,
+        grant_type: "password",
+        client_id: "csp-web",
+        source: "sunsynk",
+      };
+      
+      const resp = await this._client.post<TokenApiResponse>('oauth/token/new', requestBody);
 
-    if (resp.data.msg !== "Success") {
-      throw new AuthenticationError(resp.data.msg, resp.data.code);
+      if (!resp.data.success || resp.data.msg !== "Success") {
+        throw new AuthenticationError(resp.data.msg || "Authentication failed", resp.data.code);
+      }
+
+      this._accessToken = resp.data.data.access_token;
+      this._refreshTokenProvider.setRefreshToken(resp.data.data.refresh_token);
+    } catch (error: any) {
+      if (error.response) {
+        // Server responded with error status
+        const errorData = error.response.data;
+        throw new AuthenticationError(
+          errorData?.msg || error.message || "Authentication failed",
+          errorData?.code || error.response.status
+        );
+      }
+      throw error;
     }
-
-    this._accessToken = resp.data.data.access_token;
-    this._refreshTokenProvider.setRefreshToken(resp.data.data.refresh_token);
-
   }
 
   private async getTokenWithRefreshToken(): Promise<void> {
     const resp = await this._client.post<TokenApiResponse>('oauth/token', {
       grant_type: "refresh_token",
       refresh_token: this._refreshTokenProvider.getRefreshToken(),
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
 
     if (!resp.data.success) {
