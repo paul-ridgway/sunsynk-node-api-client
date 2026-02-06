@@ -9,6 +9,7 @@ export class Client {
   private readonly _lan: string = 'en';
   private readonly _client: AxiosInstance;
   private _accessToken: string | undefined;
+  private _accessTokenExpiresAt: Date | undefined;
   private _username: string | undefined;
   private _password: string | undefined;
   private _refreshTokenProvider: RefreshTokenProvider;
@@ -36,7 +37,14 @@ export class Client {
       if (!config.url?.includes('oauth/token') && 
           !config.url?.includes('oauth/token/new') && 
           !config.url?.includes('anonymous/publicKey')) {
-        if (!this._accessToken) {
+        // Check if we need to refresh the token
+        const needsRefresh = !this._accessToken || this.isTokenExpired();
+        if (needsRefresh) {
+          if (this._accessToken && this.isTokenExpired()) {
+            console.log('[Sunsynk Client] Access token expired, refreshing...');
+          } else {
+            console.log('[Sunsynk Client] No access token, obtaining new token...');
+          }
           await this.updateTokens();
         }
         config.headers['Authorization'] = `Bearer ${this._accessToken}`;
@@ -47,8 +55,10 @@ export class Client {
     // TODO: Handle success = false here?
     this._client.interceptors.response.use(async (response) => response, async (error) => {
       if (error) {
-        console.error("API Error", error.message, error.response?.status, JSON.stringify(error.response?.data, null, 2));
+        const url = error.config?.url || 'unknown';
+        console.error(`[Sunsynk Client] API Error on ${url}:`, error.message, error.response?.status, JSON.stringify(error.response?.data, null, 2));
         if (error.response?.status === 401) {
+          console.log('[Sunsynk Client] Received 401 Unauthorized, attempting token refresh...');
           await this.updateTokens();
           return await this._client(error.config);
         }
@@ -64,6 +74,19 @@ export class Client {
   setCredentials(username: string, password: string) {
     this._username = username;
     this._password = password;
+  }
+
+  private isTokenExpired(): boolean {
+    if (!this._accessTokenExpiresAt) {
+      return true;
+    }
+    // Consider token expired 60 seconds before actual expiry to avoid edge cases
+    const expiryBuffer = 60 * 1000;
+    const isExpired = Date.now() >= (this._accessTokenExpiresAt.getTime() - expiryBuffer);
+    if (isExpired) {
+      console.log(`[Sunsynk Client] Token expired at ${this._accessTokenExpiresAt.toISOString()}`);
+    }
+    return isExpired;
   }
 
   async getUser() {
@@ -170,10 +193,26 @@ export class Client {
   }
 
   private async updateTokens(): Promise<void> {
-    if (this._refreshTokenProvider.getRefreshToken()) {
-      return await this.getTokenWithRefreshToken();
+    const hasRefreshToken = !!this._refreshTokenProvider.getRefreshToken();
+    
+    if (hasRefreshToken) {
+      console.log('[Sunsynk Client] Attempting token refresh with refresh token...');
+      try {
+        await this.getTokenWithRefreshToken();
+        console.log('[Sunsynk Client] Successfully refreshed token using refresh token');
+        return;
+      } catch (error: any) {
+        console.error('[Sunsynk Client] Failed to refresh token with refresh token:', error.message);
+        console.log('[Sunsynk Client] Falling back to credential-based authentication...');
+        // Clear the invalid refresh token
+        this._refreshTokenProvider.setRefreshToken('');
+        // Fall through to credential-based auth
+      }
     }
-    return await this.getTokenWithCredentials();
+    
+    console.log('[Sunsynk Client] Attempting authentication with credentials...');
+    await this.getTokenWithCredentials();
+    console.log('[Sunsynk Client] Successfully authenticated with credentials');
   }
 
   private async getTokenWithCredentials(): Promise<void> {
@@ -223,6 +262,12 @@ export class Client {
 
       this._accessToken = resp.data.data.access_token;
       this._refreshTokenProvider.setRefreshToken(resp.data.data.refresh_token);
+      
+      // Calculate token expiration time
+      const expiresInMs = resp.data.data.expires_in * 1000;
+      this._accessTokenExpiresAt = new Date(Date.now() + expiresInMs);
+      
+      console.log(`[Sunsynk Client] New access token obtained, expires in ${resp.data.data.expires_in}s at ${this._accessTokenExpiresAt.toISOString()}`);
     } catch (error: any) {
       if (error.response) {
         // Server responded with error status
@@ -238,23 +283,45 @@ export class Client {
 
   private async getTokenWithRefreshToken(): Promise<void> {
     const baseUrl = this._baseUrl.endsWith('/') ? this._baseUrl.slice(0, -1) : this._baseUrl;
-    const resp = await axios.post<TokenApiResponse>(`${baseUrl}/oauth/token`, {
-      grant_type: "refresh_token",
-      refresh_token: this._refreshTokenProvider.getRefreshToken(),
-    }, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Content-Type': 'application/json',
-      },
-    });
+    
+    try {
+      const resp = await axios.post<TokenApiResponse>(`${baseUrl}/oauth/token`, {
+        grant_type: "refresh_token",
+        refresh_token: this._refreshTokenProvider.getRefreshToken(),
+      }, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Content-Type': 'application/json',
+        },
+      });
 
-    if (!resp.data.success) {
-      throw new AuthenticationError(resp.data.msg, resp.data.code);
+      if (!resp.data.success) {
+        const errorMsg = resp.data.msg || 'Token refresh failed';
+        console.error(`[Sunsynk Client] Token refresh failed: ${errorMsg} (code: ${resp.data.code})`);
+        throw new AuthenticationError(errorMsg, resp.data.code);
+      }
+
+      this._accessToken = resp.data.data.access_token;
+      this._refreshTokenProvider.setRefreshToken(resp.data.data.refresh_token);
+      
+      // Calculate token expiration time
+      const expiresInMs = resp.data.data.expires_in * 1000;
+      this._accessTokenExpiresAt = new Date(Date.now() + expiresInMs);
+      
+      console.log(`[Sunsynk Client] Token refreshed successfully, expires in ${resp.data.data.expires_in}s at ${this._accessTokenExpiresAt.toISOString()}`);
+    } catch (error: any) {
+      if (error.response) {
+        // Server responded with error status
+        const errorData = error.response.data;
+        const errorMsg = errorData?.msg || error.message || "Token refresh failed";
+        console.error(`[Sunsynk Client] Token refresh HTTP error: ${errorMsg} (status: ${error.response.status})`);
+        throw new AuthenticationError(errorMsg, errorData?.code || error.response.status);
+      }
+      // Network or other error
+      console.error(`[Sunsynk Client] Token refresh network error: ${error.message}`);
+      throw error;
     }
-
-    this._accessToken = resp.data.data.access_token;
-    this._refreshTokenProvider.setRefreshToken(resp.data.data.refresh_token);
   }
 }
