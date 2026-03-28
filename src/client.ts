@@ -283,12 +283,31 @@ export class Client {
 
   private async getTokenWithRefreshToken(): Promise<void> {
     const baseUrl = this._baseUrl.endsWith('/') ? this._baseUrl.slice(0, -1) : this._baseUrl;
-    
+
+    if (!this._username) {
+      throw new AuthenticationError("Username is required to refresh the token");
+    }
+
     try {
-      const resp = await axios.post<TokenApiResponse>(`${baseUrl}/oauth/token`, {
-        grant_type: "refresh_token",
+      // Same endpoint and signing as password grant (SPA uses /oauth/token/new; /oauth/token returns 404).
+      const publicKey = await this.getPublicKey();
+      const nonce = Date.now();
+      const source = 'sunsynk';
+      const first10Chars = publicKey.substring(0, 10);
+      const signString = `nonce=${nonce}&source=${source}${first10Chars}`;
+      const sign = crypto.createHash('md5').update(signString).digest('hex');
+
+      const requestBody = {
+        sign: sign,
+        nonce: nonce,
+        username: this._username,
+        grant_type: "refresh_token" as const,
         refresh_token: this._refreshTokenProvider.getRefreshToken(),
-      }, {
+        client_id: "csp-web",
+        source: "sunsynk",
+      };
+
+      const resp = await axios.post<TokenApiResponse>(`${baseUrl}/oauth/token/new`, requestBody, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept': 'application/json, text/plain, */*',
@@ -297,7 +316,7 @@ export class Client {
         },
       });
 
-      if (!resp.data.success) {
+      if (!resp.data.success || resp.data.msg !== "Success") {
         const errorMsg = resp.data.msg || 'Token refresh failed';
         console.error(`[Sunsynk Client] Token refresh failed: ${errorMsg} (code: ${resp.data.code})`);
         throw new AuthenticationError(errorMsg, resp.data.code);

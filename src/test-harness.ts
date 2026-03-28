@@ -119,6 +119,23 @@ async function main() {
     );
   }
 
+  console.log(
+    "\n  Token refresh probe: corrupting access token + expiry to force updateTokens() " +
+      "(refresh flow, then credential fallback if refresh fails)\n"
+  );
+  (client as any)._accessToken = "invalid_token_for_testing";
+  (client as any)._accessTokenExpiresAt = new Date(0);
+
+  results.push(
+    await runTest(
+      "getUser after corrupting access token (refresh / fallback)",
+      async () => {
+        const user = await client.getUser();
+        return `id=${user.id}, nickname="${user.nickname}"`;
+      }
+    )
+  );
+
   const passed = results.filter((r) => r.passed).length;
   const failed = results.filter((r) => !r.passed).length;
 
