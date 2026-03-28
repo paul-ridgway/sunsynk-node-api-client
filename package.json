@@ -5,8 +5,8 @@
   "main": "lib/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "ts-node src/test-harness.ts",
     "start": "ts-node src/index.ts",
-    "dev": "ts-node-dev --respawn src/index.ts",
     "build": "tsc -p .",
     "check": "npm run compile && npm run lint:all",
     "compile:watch": "tsc --watch --noEmit --skipLibCheck",
