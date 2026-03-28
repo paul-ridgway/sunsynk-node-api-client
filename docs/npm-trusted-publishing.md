@@ -17,7 +17,7 @@ If anything changed, **remove** the old trusted publisher entry and **add** it a
 
 ### CI logs
 
-The publish workflow prints registry URL and `npm whoami` before `npm publish`. For OIDC, `npm whoami` should show your npm username when trusted publishing is wired correctly.
+The publish workflow prints the registry URL before `npm publish`. It may also run `npm whoami`, which can return **401** with OIDC-backed tokens even when `npm publish` is correctly configured—do not treat that alone as proof of misconfiguration.
 
 ### Fallback: automation token (debug only)
 

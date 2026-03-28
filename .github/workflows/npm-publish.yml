@@ -32,10 +32,10 @@ jobs:
           registry-url: https://registry.npmjs.org/
       - run: npm ci
       - run: npm run build
-      - name: Verify registry and npm identity (OIDC)
+      - name: Verify registry (OIDC)
         run: |
-          set -e
           echo "registry=$(npm config get registry)"
-          npm whoami
+          # whoami often returns 401 with OIDC tokens; publish still uses trusted publishing.
+          npm whoami || echo "npm whoami skipped (not supported or not logged in for this token type)"
       - name: Publish to npm
         run: npm publish --provenance --access public
